@@ -91,6 +91,9 @@ services:
       SMTP_PORT: 587
       SMTP_SECURE: "false"
       FROM_EMAIL: "echotech8310@gmail.com"
+      SMTP_SERVICE: "gmail"
+      SMTP_USER: "echotech8310@gmail.com"
+      SMTP_PASS: "abcdefghijklmnop"
     ports:
       - "3002:3002"
     depends_on:
