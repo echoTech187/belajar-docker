@@ -12,6 +12,14 @@ services:
       - admin-services
       - member-services
       - publishing-services
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+    entrypoint:
+      - sh -c
+      - |
+        certbot certonly --webroot --webroot-path /var/www/certbot -d duck-api.duckdns.org --email echotech8310@gmail.com --agree-tos --no-eff-email
 
   # -----------------------------------------------------------
   # 2. DATABASE SERVICES
