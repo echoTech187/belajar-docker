@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # -----------------------------------------------------------
@@ -31,7 +31,17 @@ services:
       - db-services:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "administrator", "-pechoAdza32"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "administrator",
+          "-pechoAdza32",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,7 +53,7 @@ services:
   mailer-services:
     image: mailhog/mailhog:latest
     ports:
-      - "587:587"   # SMTP
+      - "587:587" # SMTP
       - "8025:8025" # Web UI
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8025"]
@@ -51,7 +61,7 @@ services:
   # -----------------------------------------------------------
   # 4. BACKEND APPLICATIONS
   # -----------------------------------------------------------
-  
+
   admin-services:
     build:
       context: ./admin-services
@@ -66,7 +76,8 @@ services:
     depends_on:
       db-services:
         condition: service_healthy
-    command: sh -c "npx sequelize-cli db:migrate && node index.js"
+    # UPDATE: Tambah db:create biar aman kalau DB belum ada
+    command: sh -c "npx sequelize-cli db:create && npx sequelize-cli db:migrate && node index.js"
 
   member-services:
     build:
@@ -89,7 +100,8 @@ services:
         condition: service_started
       db-services:
         condition: service_healthy
-    command: sh -c "npx sequelize-cli db:migrate && node index.js"
+    # UPDATE: Tambah db:create
+    command: sh -c "npx sequelize-cli db:create && npx sequelize-cli db:migrate && node index.js"
 
   publishing-services:
     build:
@@ -105,7 +117,8 @@ services:
     depends_on:
       db-services:
         condition: service_healthy
-    command: sh -c "npx sequelize-cli db:migrate && node index.js"
+    # UPDATE: Tambah db:create
+    command: sh -c "npx sequelize-cli db:create && npx sequelize-cli db:migrate && node index.js"
 
 volumes:
   db-services:
