@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 
-route.post('/admin/login', (req, res) => {
+route.post('/login', (req, res) => {
     const username = req.body.username || req.query.username;
     const password = req.body.password || req.query.password;
 
@@ -37,7 +37,7 @@ route.post('/admin/login', (req, res) => {
     }
 });
 
-route.post('/admin/register', (req, res) => {
+route.post('/register', (req, res) => {
     const { firstName, lastName, password, confirmPassword, email, phoneNumber } = req.body;
     if (!firstName || !lastName || !password || !confirmPassword || !email || !phoneNumber) {
         return res.status(400).json({ success: false, message: 'fields is required' });
@@ -84,7 +84,7 @@ route.post('/admin/register', (req, res) => {
     }
 });
 
-route.post('/admin/logout', (req, res) => {
+route.post('/logout', (req, res) => {
     const authorization = req.headers['authorization'];
     const token = authorization.split(' ')[1];
     if (!token) {
@@ -104,7 +104,7 @@ route.post('/admin/logout', (req, res) => {
     return res.status(200).json({ message: 'Logout successful' });
 });
 
-route.get('/admin/profile', (req, res) => {
+route.get('/profile', (req, res) => {
     const authorization = req.headers['authorization'];
     const token = authorization.split(' ')[1];
     if (!token) {

@@ -10,7 +10,7 @@ const paginate = require('../lib/hooks/paginate.js');
 
 const app = express();
 const router = express.Router();
-router.get('/member', (req, res) => {
+router.get('/', (req, res) => {
     const authorization = req.headers['authorization'];
     const token = authorization.split(' ')[1];
     if (!token) {
@@ -51,7 +51,7 @@ router.get('/member', (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
     }
 });
-router.post('/member/login', (req, res) => {
+router.post('/login', (req, res) => {
     const username = req.body.username || req.query.username;
     const password = req.body.password || req.query.password;
 
@@ -82,7 +82,7 @@ router.post('/member/login', (req, res) => {
     }
 });
 
-router.post('/member/register', (req, res) => {
+router.post('/register', (req, res) => {
     const { fullname, password, confirmPassword, email, phoneNumber } = req.body;
     if (!fullname || !password || !confirmPassword || !phoneNumber || !email) {
         return res.status(400).json({ success: false, message: 'fields is required' });
@@ -126,7 +126,7 @@ router.post('/member/register', (req, res) => {
 });
 
 
-router.get('member/logout', (req, res) => {
+router.get('/logout', (req, res) => {
     const authorization = req.headers['authorization'];
     const token = authorization.split(' ')[1];
     if (!token) {
@@ -147,7 +147,7 @@ router.get('member/logout', (req, res) => {
     }
 });
 
-router.get('/member/profile', (req, res) => {
+router.get('/profile', (req, res) => {
     const authorization = req.headers['authorization'];
     const token = authorization.split(' ')[1];
     if (!token) {
@@ -173,7 +173,7 @@ router.get('/member/profile', (req, res) => {
     }
 });
 
-router.post('/member/forgot-password', (req, res) => {
+router.post('/forgot-password', (req, res) => {
     const email = req.body.email;
     if (!email) {
         return res.status(400).json({ message: 'Email is required' });
