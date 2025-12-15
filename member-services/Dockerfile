@@ -5,7 +5,6 @@ WORKDIR /
 COPY package*.json ./
 
 RUN npm install 
-RUN npx sequelize-cli init
 
 COPY . .
 
