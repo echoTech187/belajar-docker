@@ -16,10 +16,7 @@ services:
     image: certbot/certbot
     volumes:
       - ./certbot/conf:/etc/letsencrypt
-    entrypoint:
-      - sh -c
-      - |
-        certbot certonly --webroot --webroot-path /var/www/certbot -d duck-api.duckdns.org --email echotech8310@gmail.com --agree-tos --no-eff-email
+      - ./certbot/www:/var/www/certbot
 
   # -----------------------------------------------------------
   # 2. DATABASE SERVICES
