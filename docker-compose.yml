@@ -77,7 +77,7 @@ services:
       db-services:
         condition: service_healthy
     # UPDATE: Tambah db:create biar aman kalau DB belum ada
-    command: sh -c "npx sequelize-cli db:create && npx sequelize-cli db:migrate && node index.js"
+    command: sh -c "(npx sequelize-cli db:create || true) && npx sequelize-cli db:migrate && node index.js"
 
   member-services:
     build:
@@ -101,7 +101,7 @@ services:
       db-services:
         condition: service_healthy
     # UPDATE: Tambah db:create
-    command: sh -c "npx sequelize-cli db:create && npx sequelize-cli db:migrate && node index.js"
+    command: sh -c "(npx sequelize-cli db:create || true) && npx sequelize-cli db:migrate && node index.js"
 
   publishing-services:
     build:
@@ -118,7 +118,7 @@ services:
       db-services:
         condition: service_healthy
     # UPDATE: Tambah db:create
-    command: sh -c "npx sequelize-cli db:create && npx sequelize-cli db:migrate && node index.js"
+    command: sh -c "(npx sequelize-cli db:create || true) && npx sequelize-cli db:migrate && node index.js"
 
 volumes:
   db-services:
