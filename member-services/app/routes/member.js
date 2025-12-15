@@ -10,7 +10,7 @@ const paginate = require('../lib/hooks/paginate.js');
 
 const app = express();
 const router = express.Router();
-router.get('/data', (req, res) => {
+router.get('/members', (req, res) => {
     const authorization = req.headers['authorization'];
     const token = authorization.split(' ')[1];
     if (!token) {
