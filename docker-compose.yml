@@ -16,6 +16,7 @@ services:
     image: certbot/certbot
     volumes:
       - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     command: docker-compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot -d duck-api.duckdns.org --email echotech8310@gmail.com --agree-tos --no-eff-email
 
   # -----------------------------------------------------------
