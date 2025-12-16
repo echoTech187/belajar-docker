@@ -25,38 +25,6 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
   # -----------------------------------------------------------
-  # 2. DATABASE SERVICES
-  # -----------------------------------------------------------
-  db-services:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: echoAdza32
-      MYSQL_USER: administrator
-      MYSQL_PASSWORD: echoAdza32
-    ports:
-      - "3307:3306"
-    command: --default-authentication-plugin=mysql_native_password
-    volumes:
-      - db-services:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "administrator",
-          "-pechoAdza32",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-  # -----------------------------------------------------------
   # 3. MAILER (MAILHOG)
   # -----------------------------------------------------------
   mailer-services:
@@ -76,15 +44,13 @@ services:
       context: ./admin-services
       dockerfile: Dockerfile
     environment:
-      DB_HOST: db-services
+      DB_HOST: belajar-rds-db.c5mycw64syxg.ap-southeast-1.rds.amazonaws.com
       DB_USER: administrator
-      DB_PASSWORD: echoAdza32
+      DB_PASSWORD: echoAdza3205
+      DB_PORT: 3306
       DB_NAME: admin_db
     ports:
       - "3001:3001"
-    depends_on:
-      db-services:
-        condition: service_healthy
     # UPDATE: Tambah db:create biar aman kalau DB belum ada
     command: sh -c "(npx sequelize-cli db:create || true) && npx sequelize-cli db:migrate && node index.js"
 
@@ -93,9 +59,10 @@ services:
       context: ./member-services
       dockerfile: Dockerfile
     environment:
-      DB_HOST: db-services
+      DB_HOST: belajar-rds-db.c5mycw64syxg.ap-southeast-1.rds.amazonaws.com
       DB_USER: administrator
-      DB_PASSWORD: echoAdza32
+      DB_PASSWORD: echoAdza3205
+      DB_PORT: 3306
       DB_NAME: member_db
       # Mailer Config
       SMTP_HOST: mailhog
@@ -110,8 +77,6 @@ services:
     depends_on:
       mailer-services:
         condition: service_started
-      db-services:
-        condition: service_healthy
     # UPDATE: Tambah db:create
     command: sh -c "(npx sequelize-cli db:create || true) && npx sequelize-cli db:migrate && node index.js"
 
@@ -120,15 +85,13 @@ services:
       context: ./publishing-services
       dockerfile: Dockerfile
     environment:
-      DB_HOST: db-services
+      DB_HOST: belajar-rds-db.c5mycw64syxg.ap-southeast-1.rds.amazonaws.com
       DB_USER: administrator
-      DB_PASSWORD: echoAdza32
+      DB_PASSWORD: echoAdza3205
+      DB_PORT: 3306
       DB_NAME: publishing_db
     ports:
       - "3003:3003"
-    depends_on:
-      db-services:
-        condition: service_healthy
     # UPDATE: Tambah db:create
     command: sh -c "(npx sequelize-cli db:create || true) && npx sequelize-cli db:migrate && node index.js"
 
