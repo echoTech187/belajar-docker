@@ -1,0 +1,34 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main # Robot bekerja hanya kalau ada update di branch 'main'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            # 1. Masuk ke folder project
+            cd belajar-docker
+
+            # 2. Ambil kodingan terbaru dari GitHub
+            git pull origin main
+
+            # 3. Build ulang dan restart container (Mode Detached)
+            # Docker akan otomatis hanya restart container yang berubah
+            sudo docker-compose up -d --build
+
+            # 4. Bersihkan image sampah (biar harddisk gak penuh)
+            sudo docker system prune -f
