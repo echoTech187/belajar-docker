@@ -11,14 +11,14 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      AdminRole.belongsTo(models.Role, { foreignKey: 'roleId' });
-      AdminRole.belongsTo(models.Admin, { foreignKey: 'UserId' });
+      AdminRole.belongsTo(models.Role, { foreignKey: 'role_id' });
+      AdminRole.belongsTo(models.Admin, { foreignKey: 'user_id' });
     }
   }
   AdminRole.init({
-    roleId: DataTypes.BIGINT,
-    UserId: DataTypes.BIGINT,
-    isAllowed: DataTypes.BOOLEAN
+    role_id: DataTypes.BIGINT,
+    user_id: DataTypes.BIGINT,
+    is_allowed: DataTypes.BOOLEAN
   }, {
     sequelize,
     modelName: 'AdminRole',

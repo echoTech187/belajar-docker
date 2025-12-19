@@ -17,11 +17,11 @@ module.exports = {
         allowNull: false,
         type: Sequelize.STRING
       },
-      firstName: {
+      first_name: {
         allowNull: false,
         type: Sequelize.STRING
       },
-      lastName: {
+      last_name: {
         allowNull: false,
         type: Sequelize.STRING
       },
@@ -51,6 +51,10 @@ module.exports = {
       },
       last_online: {
         type: Sequelize.DATE
+      },
+      is_active: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: true
       },
       createdAt: {
         allowNull: true,

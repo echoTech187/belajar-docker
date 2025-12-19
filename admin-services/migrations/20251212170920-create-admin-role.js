@@ -9,15 +9,15 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      roleId: {
+      role_id: {
         allowNull: false,
         type: Sequelize.BIGINT
       },
-      UserId: {
+      user_id: {
         allowNull: false,
         type: Sequelize.BIGINT
       },
-      isAllowed: {
+      is_allowed: {
         type: Sequelize.BOOLEAN,
         defaultValue: true
       },
