@@ -4,34 +4,37 @@ const handlebars = require('handlebars');
 const fs = require('fs');
 const path = require('path');
 
-const sendMail = async ({ to, subject, action_url }) => {
+const sendMail = async ({ to, templateUrl, subject, action_url, html }) => {
     try {
         // 1. Read and compile the template
-        const htmlFilePath = path.join(__dirname, '../../templates/forgot-password.html');
+        let htmlFilePath = "";
+        if (subject === "Password Reset") {
+            htmlFilePath = path.join(__dirname, '../../templates/forgot-password.html');
+        } else {
+            htmlFilePath = path.join(__dirname, `../../templates/${templateUrl}`);
+        }
         const source = fs.readFileSync(htmlFilePath, 'utf-8').toString();
         const template = handlebars.compile(source);
 
         // 2. Prepare replacements
         const replacements = {
-            title: subject,
+            subject: subject,
+            from: process.env.EMAIL_HOST_USER,
             name: to,
             action_url: action_url,
-            action_text: "Reset your password",
-            operating_system: "Windows",
-            browser: "Chrome",
-            browser_name: "Chrome",
-            platform: "Platform",
-            support_url: "support_url",
-            company_name: "Company Name",
-            company_url: "company_url",
-            company_address: "company_address",
-            company_phone: "company_phone",
-            company_email: "company_email",
-            company_logo: "company_logo",
+            date: new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            html: html,
+            company_name: process.env.EMAIL_COMPANY_NAME,
+            company_address: process.env.EMAIL_COMPANY_ADDRESS,
+            company_phone: process.env.EMAIL_COMPANY_PHONE,
+            company_email: process.env.EMAIL_HOST_USER,
+            company_logo: process.env.EMAIL_COMPANY_LOGO,
+            years: new Date().getFullYear()
         };
 
         // 3. Generate HTML
         const htmlToSend = template(replacements);
+
         // 4. Configure transporter
         const mailConfig = {
             host: process.env.EMAIL_HOST,
@@ -56,16 +59,21 @@ const sendMail = async ({ to, subject, action_url }) => {
         // 6. Send mail
         const info = await transporter.sendMail(mailOptions);
 
+        if (!info.response) {
+            throw new Error('Email tidak dapat dikirim : ' + info.message);
+        }
+
+
         return {
             status: true,
-            message: 'Password reset link sent successfully',
+            message: `${subject} telah dikirim ke ${to}`,
             info: info.response
         };
 
     } catch (error) {
         return {
             status: false,
-            message: 'Email could not be sent',
+            message: 'Email tidak dapat dikirim : ' + error.message,
             error: error
         };
     }

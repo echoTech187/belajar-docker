@@ -16,8 +16,8 @@ class AuthModel {
     }
 
     async getUserByUsername(username) {
-        const query = 'SELECT slug, first_name, last_name, username, password, email, phone_number,is_online, last_online, is_active FROM admins WHERE username = ? and is_active = 1 LIMIT 1';
-        return await db.execute(query, [username]).then(rows => rows[0]);
+        const query = 'SELECT slug, first_name, last_name, username, password, email, phone_number,is_online, last_online, is_active FROM admins WHERE username = ? OR email = ? and is_active = 1 LIMIT 1';
+        return await db.execute(query, [username, username]).then(rows => rows[0]);
     }
 
     async getUserByPhoneNumber(phoneNumber) {

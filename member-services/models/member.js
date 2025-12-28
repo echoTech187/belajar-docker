@@ -21,11 +21,16 @@ module.exports = (sequelize, DataTypes) => {
     email: DataTypes.STRING,
     phone_number: DataTypes.STRING,
     password: DataTypes.STRING,
-    university_id: DataTypes.BIGINT,
-    major_id: DataTypes.BIGINT,
+    image: DataTypes.TEXT,
     last_login: DataTypes.DATE,
     last_transaction: DataTypes.DATE,
-    user_status: DataTypes.BIGINT
+    provider_account_id: DataTypes.STRING,
+    provider: DataTypes.STRING,
+    provider_type: DataTypes.STRING,
+    user_status: DataTypes.BIGINT,
+    otp_code: DataTypes.STRING,
+    otp_expires_at: DataTypes.DATE,
+    refresh_token: DataTypes.TEXT
   }, {
     sequelize,
     modelName: 'Member',

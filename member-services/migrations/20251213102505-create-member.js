@@ -14,11 +14,11 @@ module.exports = {
         type: Sequelize.STRING
       },
       username: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.STRING
       },
       fullname: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.STRING
       },
       email: {
@@ -26,20 +26,16 @@ module.exports = {
         type: Sequelize.STRING
       },
       phone_number: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.STRING
       },
       password: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.STRING
       },
-      university_id: {
+      image: {
         allowNull: true,
-        type: Sequelize.BIGINT
-      },
-      major_id: {
-        allowNull: true,
-        type: Sequelize.BIGINT
+        type: Sequelize.TEXT
       },
       last_login: {
         allowNull: true,
@@ -48,6 +44,18 @@ module.exports = {
       last_transaction: {
         allowNull: true,
         type: Sequelize.DATE
+      },
+      provider_account_id: {
+        allowNull: true,
+        type: Sequelize.STRING
+      },
+      provider: {
+        allowNull: true,
+        type: Sequelize.STRING
+      },
+      provider_type: {
+        allowNull: true,
+        type: Sequelize.STRING
       },
       user_status: {
         allowNull: false,

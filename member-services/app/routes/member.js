@@ -56,72 +56,181 @@ router.post('/login', (req, res) => {
     const password = req.body.password || req.query.password;
 
     if (!username || !password) {
-        return res.status(400).json({ message: 'Username and password are required' });
+        return res.status(400).json({ message: 'Email/password harus diisi' });
     }
     try {
-        const query = 'SELECT * FROM members WHERE username = ? OR phone_number = ? LIMIT 1';
+        const query = 'SELECT * FROM members WHERE  email = ? and user_status != 1 LIMIT 1';
 
-        db.execute(query, [username, username])
+        db.execute(query, [username])
             .then(([rows]) => {
                 if (rows.length > 0) {
                     const hashedPassword = rows[0].password;
                     const passwordMatch = bcrypt.compareSync(password, hashedPassword);
                     if (!passwordMatch) {
-                        return res.status(401).json({ success: false, message: 'Invalid username or password' });
+                        return res.status(401).json({ success: false, message: 'Email atau password salah' });
                     }
-                    return res.status(200).json({ success: true, message: 'Login successful', username: rows[0].username, token: jwt.sign({ slug: rows[0].slug, fullname: rows[0].fullname, username: rows[0].username, email: rows[0].email, phone_number: rows[0].phone_number }, process.env.JWT_SECRET, { expiresIn: '1d' }) });
+                    return res.status(200).json({ success: true, message: 'Login berhasil', user: { fullname: rows[0].fullname, email: rows[0].email, phone_number: rows[0].phone_number, username: rows[0].username, slug: rows[0].slug, id: rows[0].id }, username: rows[0].fullname, token: jwt.sign({ slug: rows[0].slug, fullname: rows[0].fullname, username: rows[0].username, email: rows[0].email, phone_number: rows[0].phone_number }, process.env.JWT_SECRET, { expiresIn: '1d' }) });
                 } else {
-                    return res.status(404).json({ success: false, message: 'Username not found' });
+                    return res.status(404).json({ success: false, message: 'Email tidak terdaftar' });
                 }
             })
             .catch((err) => {
-                return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
+                return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: err.message });
             });
     } catch (error) {
-        return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+        return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: error.message });
     }
+});
+router.post('/login-with-google', (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ success: false, message: 'Email harus diisi' });
+    }
+    try {
+        const query = 'SELECT * FROM members WHERE email = ? and user_status != 1 LIMIT 1';
+        db.execute(query, [email])
+            .then(([rows]) => {
+                if (rows.length > 0) {
+                    const user = rows[0];
+                    const token = jwt.sign({ slug: user.slug, fullname: user.fullname, username: user.username, email: user.email, phone_number: user.phone_number }, process.env.JWT_SECRET, { expiresIn: '1d' });
+                    return res.status(200).json({ success: true, message: 'Login berhasil', user, token });
+                } else {
+                    return res.status(404).json({ success: false, message: 'Email tidak terdaftar' });
+                }
+            })
+            .catch((err) => {
+                return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan login', error: err.message });
+            });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan login', error: error.message });
+    }
+
 });
 
 router.post('/register', (req, res) => {
-    const { fullname, password, confirmPassword, email, phoneNumber } = req.body;
-    if (!fullname || !password || !confirmPassword || !phoneNumber || !email) {
-        return res.status(400).json({ success: false, message: 'fields is required' });
+    if (!req.body.email) {
+        return res.status(400).json({ success: false, message: 'Email harus diisi' });
     }
-    if (password !== confirmPassword) {
-        return res.status(400).json({ success: false, message: 'Passwords do not match' });
+    if (!req.body.email.includes('@')) {
+        return res.status(400).json({ success: false, message: 'Email tidak valid' });
     }
-    if (password.length < 8) {
-        return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
+    if (req.body.password) {
+        if (req.body.password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password minimal 6 karakter' });
+        }
+        if (req.body.password !== req.body.confirmPassword) {
+            return res.status(400).json({ success: false, message: 'Password dan konfirmasi password tidak cocok' });
+        }
     }
-    if (!email.includes('@')) {
-        return res.status(400).json({ success: false, message: 'Invalid email address' });
-    }
-    const username = email.split('@')[0];
-    try {
-        const searchUserQuery = 'SELECT * FROM members WHERE email = ? OR phone_number = ? LIMIT 1';
 
-        db.execute(searchUserQuery, [email, phoneNumber])
+    try {
+        const searchUserQuery = 'SELECT * FROM members WHERE email = ? LIMIT 1';
+
+        db.execute(searchUserQuery, [req.body.email])
             .then(async ([rows]) => {
                 if (rows.length > 0) {
-                    return res.status(400).json({ success: false, message: 'Username already exists' });
+                    if (rows[0].is_verified == 'N') {
+                        const query = "UPDATE members SET password = ?, user_status = ? WHERE email = ?";
+                        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+                        await db.execute(query, [hashedPassword, 1, req.body.email]).then(async () => {
+                            const codeVerify = Math.floor(100000 + Math.random() * 999999);
+                            const mailResult = await sendMail({
+                                to: req.body.email,
+                                templateUrl: 'otp.html',
+                                subject: 'OTP Verification',
+                                action_url: ``,
+                                html: {
+                                    title: 'Kode Verifikasi anda',
+                                    description: codeVerify.toString(),
+                                }
+                            });
+                            if (mailResult.status === false) {
+                                return res.status(500).json({
+                                    success: false, message: mailResult.message, error: mailResult.error
+                                });
+                            }
+                            return res.status(200).json({
+                                success: true,
+                                message: 'Registrasi berhasil',
+                                user: {
+                                    id: rows[0].id,
+                                    slug: rows[0].slug,
+                                    fullname: rows[0].fullname,
+                                    username: rows[0].username,
+                                    email: req.body.email,
+                                    phone_number: rows[0].phone_number,
+                                    image: rows[0].image,
+                                    user_status: rows[0].user_status,
+                                    code: codeVerify
+                                },
+                                token: jwt.sign({ slug: rows[0].slug, fullname: rows[0].fullname, username: rows[0].username, email: req.body.email }, process.env.JWT_SECRET, { expiresIn: '15m' })
+                            });
+                        }).catch((err) => {
+                            return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: err.message });
+                        });
+                        return;
+                    } else {
+                        return res.status(400).json({ success: false, message: 'Email telah terdaftar. Silahkan login.' });
+                    }
                 } else {
+
                     const slug = uuidv4().toString();
-                    const newPassword = await bcrypt.hash(password, 10);
-                    const query = 'INSERT INTO members (slug,fullname, username, password, email,phone_number) VALUES (?, ?, ?, ?, ?, ?)';
-                    db.execute(query, [slug, fullname, username, newPassword, email, phoneNumber])
-                        .then(() => {
-                            return res.status(200).json({ success: true, message: 'Registration successful', token: jwt.sign({ slug, fullname, username, email, phoneNumber }, process.env.JWT_SECRET, { expiresIn: '1d' }) });
+                    const password = req.body.password ? req.body.password : null;
+                    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+                    const username = req.body.email ? req.body.email.split('@')[0] : null;
+
+                    const provider_account_id = Date.now();
+                    const provider = 'credentials';
+                    const provider_type = 'credentials';
+
+                    const query = 'INSERT INTO members (slug, username, email,password,provider_account_id,provider,provider_type) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                    db.execute(query, [slug, username, req.body.email, hashedPassword, provider_account_id, provider, provider_type])
+                        .then(async (result) => {
+                            const codeVerify = Math.floor(100000 + Math.random() * 999999);
+                            const mailResult = await sendMail({
+                                to: req.body.email,
+                                templateUrl: 'otp.html',
+                                subject: 'OTP Verification',
+                                action_url: ``,
+                                html: {
+                                    title: 'Kode Verifikasi anda',
+                                    description: codeVerify.toString(),
+                                }
+                            });
+                            if (mailResult.status === false) {
+                                return res.status(500).json({
+                                    success: false, message: mailResult.message, error: mailResult.error
+                                });
+                            }
+
+                            return res.status(200).json({
+                                success: true,
+                                message: 'Registrasi berhasil',
+                                user: {
+                                    id: result.insertId,
+                                    slug: slug,
+                                    fullname: req.body.fullname || null,
+                                    username: username,
+                                    email: req.body.email,
+                                    phone_number: req.body.phone_number || null,
+                                    image: null,
+                                    user_status: null,
+                                    code: codeVerify
+                                },
+                                token: jwt.sign({ slug: slug, fullname: req.body.fullname, username: req.body.username, email: req.body.email }, process.env.JWT_SECRET, { expiresIn: '15m' })
+                            });
                         })
                         .catch((err) => {
-                            return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
+                            return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: err.message });
                         });
+
                 }
             })
             .catch((err) => {
-                return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
+                return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: err.message });
             });
     } catch (error) {
-        return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+        return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: error.message });
     }
 });
 
@@ -186,7 +295,8 @@ router.post('/forgot-password', (req, res) => {
                     const mailResult = await sendMail({
                         to: email,
                         subject: 'Password Reset',
-                        action_url: `${process.env.REDIRECT_EMAIL_URL}/reset-password?email=${email}`
+                        action_url: `${process.env.REDIRECT_EMAIL_URL}/reset-password?email=${email}`,
+                        action_text: 'Reset Password',
                     });
                     if (mailResult.status === false) {
                         return res.status(500).json({ success: false, message: mailResult.message, error: mailResult.error });
@@ -204,5 +314,90 @@ router.post('/forgot-password', (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
     }
 });
+
+router.get('/check-user-by-email', (req, res) => {
+    const email = req.query.email || req.body.email;
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+    try {
+        const query = 'SELECT * FROM members WHERE email = ? LIMIT 1';
+        db.execute(query, [email])
+            .then(([rows]) => {
+                if (rows.length > 0) {
+                    return res.status(200).json({
+                        success: true, message: 'User found', user: {
+                            id: rows[0].id,
+                            slug: rows[0].slug,
+                            fullname: rows[0].fullname,
+                            username: rows[0].username,
+                            email: rows[0].email,
+                            phone_number: rows[0].phone_number,
+                            image: rows[0].image,
+                            user_status: rows[0].user_status,
+                        }
+                    });
+                } else {
+                    return res.status(200).json({ success: false, message: 'User not found' });
+                }
+            })
+            .catch((err) => {
+                return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
+            });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    }
+});
+
+router.post('/send-email-code-verification', async (req, res) => {
+    const email = req.body.email;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+    try {
+        const otp = Math.floor(100000 + Math.random() * 999999);
+        const mailResult = await sendMail({
+            to: email,
+            templateUrl: 'otp.html',
+            subject: 'OTP Verification',
+            action_url: ``,
+            html: {
+                title: 'Kode Verifikasi anda',
+                description: otp.toString(),
+            }
+        });
+        if (mailResult.status === false) {
+            return res.status(500).json({
+                success: false, message: mailResult.message, error: mailResult.error
+            });
+        }
+        return res.status(200).json({
+            success: true, message: mailResult.message || 'Email sent successfully', token: jwt.sign({ email, otp }, process.env.JWT_SECRET, { expiresIn: '1h' })
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    }
+});
+
+router.put('/register-completed/:id', (req, res) => {
+    try {
+        const query = 'UPDATE members SET user_status = ? , is_verified = ? WHERE slug = ?';
+        db.execute(query, [req.body.user_status, 'Y', req.params.id])
+            .then(([rows]) => {
+                if (rows.affectedRows > 0) {
+                    return res.status(200).json({ success: true, message: 'Registration completed' });
+                } else {
+                    return res.status(404).json({ success: false, message: 'Email tidak terdaftar' });
+                }
+            })
+            .catch((err) => {
+                return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
+            });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    }
+});
+
 
 module.exports = router;
