@@ -5,6 +5,7 @@ const db = require('../../config/db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+const { randomInt } = require('crypto');
 const paginate = require('../lib/hooks/paginate.js');
 
 
@@ -133,7 +134,7 @@ router.post('/register', (req, res) => {
                         const query = "UPDATE members SET password = ?, user_status = ? WHERE email = ?";
                         const hashedPassword = await bcrypt.hash(req.body.password, 10);
                         await db.execute(query, [hashedPassword, 1, req.body.email]).then(async () => {
-                            const codeVerify = Math.floor(100000 + Math.random() * 999999);
+                            const codeVerify = randomInt(100000, 999999);
                             const mailResult = await sendMail({
                                 to: req.body.email,
                                 templateUrl: 'otp.html',
@@ -186,7 +187,7 @@ router.post('/register', (req, res) => {
                     const query = 'INSERT INTO members (slug, username, email,password,provider_account_id,provider,provider_type) VALUES (?, ?, ?, ?, ?, ?, ?)';
                     db.execute(query, [slug, username, req.body.email, hashedPassword, provider_account_id, provider, provider_type])
                         .then(async (result) => {
-                            const codeVerify = Math.floor(100000 + Math.random() * 999999);
+                            const codeVerify = randomInt(100000, 999999);
                             const mailResult = await sendMail({
                                 to: req.body.email,
                                 templateUrl: 'otp.html',
@@ -234,6 +235,105 @@ router.post('/register', (req, res) => {
     }
 });
 
+router.post('/register-with-google', (req, res) => {
+    if (!req.body.email) {
+        return res.status(400).json({ success: false, message: 'Email harus diisi' });
+    }
+    const slug = uuidv4().toString();
+    const email = req.body.email;
+    const username = req.body.email ? req.body.email.split('@')[0] : null;
+    const fullname = req.body.name ? req.body.name : null;
+    const provider_account_id = req.body.id;
+    const image = req.body.image;
+    const provider = 'google';
+    const provider_type = 'google';
+    try {
+        const searchUserQuery = 'SELECT * FROM members WHERE email = ? LIMIT 1';
+        db.execute(searchUserQuery, [email])
+            .then(async ([rows]) => {
+                if (rows.length > 0) {
+                    if (rows[0].is_verified == 'N') {
+                        let hashedPassword = "";
+                        if (rows[0].password == null) {
+                            hashedPassword = await bcrypt.hash(rows[0].password, 10);
+                        } else {
+                            hashedPassword = "";
+                        }
+
+                        const query = "UPDATE members SET user_status = ?, password = ? WHERE email = ?";
+                        await db.execute(query, [1, hashedPassword, email]).then(async () => {
+
+                            const codeVerify = randomInt(100000, 999999);
+                            const mailResult = await sendMail({
+                                to: email,
+                                templateUrl: 'otp.html',
+                                subject: 'OTP Verification',
+                                action_url: ``,
+                                html: {
+                                    title: 'Kode Verifikasi anda',
+                                    description: codeVerify.toString(),
+                                }
+                            });
+                            if (mailResult.status === false) {
+                                return res.status(500).json({
+                                    success: false, message: mailResult.message, error: mailResult.error
+                                });
+                            }
+                            return res.status(200).json({
+                                success: true,
+                                message: 'Registrasi berhasil',
+                                user: {
+                                    id: rows[0].id,
+                                    slug: rows[0].slug,
+                                    fullname: rows[0].fullname,
+                                    username: rows[0].username,
+                                    email: req.body.email,
+                                    phone_number: rows[0].phone_number,
+                                    image: rows[0].image,
+                                    user_status: rows[0].user_status,
+                                    code: codeVerify
+                                },
+                                token: jwt.sign({ slug: slug, fullname: fullname, username: username, email: email }, process.env.JWT_SECRET, { expiresIn: '15m' })
+                            });
+                        }).catch((err) => {
+                            return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: err.message });
+                        });
+                    } else {
+                        return res.status(400).json({ success: false, message: 'Email telah terdaftar. Silahkan login.' });
+                    }
+                } else {
+                    const query = 'INSERT INTO members (slug, username,fullname, email,image,provider_account_id,provider,provider_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+                    db.execute(query, [slug, username, fullname, email, image, provider_account_id, provider, provider_type])
+                        .then(async (result) => {
+                            const codeVerify = randomInt(100000, 999999);
+                            return res.status(200).json({
+                                success: true,
+                                message: 'Registrasi berhasil',
+                                user: {
+                                    id: provider_account_id,
+                                    slug: slug,
+                                    fullname: fullname,
+                                    username: username,
+                                    email: email,
+                                    phone_number: null,
+                                    image: image,
+                                    user_status: 1,
+                                    is_verified: 'N',
+                                    code: codeVerify
+                                },
+                                token: jwt.sign({ slug: slug, fullname: fullname, username: username, email: email }, process.env.JWT_SECRET, { expiresIn: '15m' })
+                            });
+                        }).catch((err) => {
+                            return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: err.message });
+                        });
+                }
+            }).catch((err) => {
+                return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: err.message });
+            });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Terjadi kesalahan saat melakukan registrasi', error: error.message });
+    }
+});
 
 router.get('/logout', (req, res) => {
     const authorization = req.headers['authorization'];
@@ -351,12 +451,13 @@ router.get('/check-user-by-email', (req, res) => {
 
 router.post('/send-email-code-verification', async (req, res) => {
     const email = req.body.email;
+    const code = req.body.code;
 
     if (!email) {
         return res.status(400).json({ message: 'Email is required' });
     }
     try {
-        const otp = Math.floor(100000 + Math.random() * 999999);
+        const otp = code;
         const mailResult = await sendMail({
             to: email,
             templateUrl: 'otp.html',
@@ -373,7 +474,7 @@ router.post('/send-email-code-verification', async (req, res) => {
             });
         }
         return res.status(200).json({
-            success: true, message: mailResult.message || 'Email sent successfully', token: jwt.sign({ email, otp }, process.env.JWT_SECRET, { expiresIn: '1h' })
+            success: true, message: mailResult.message || 'Email sent successfully'
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });

@@ -5,7 +5,6 @@ class AuthModel {
         return await db.execute(query, [username, username]);
     }
     async createUser(data) {
-        console.log(data);
         const query = 'INSERT INTO admins (slug, first_name, last_name, username, password, email, phone_number, is_active, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
         return await db.execute(query, [data['slug'], data['first_name'], data['last_name'], data['username'], data['password'], data['email'], data['phone_number'], data['is_active'], data['createdAt']]);
     }
