@@ -53,9 +53,9 @@ services:
       context: ./admin-services
       dockerfile: Dockerfile
     environment:
-      DB_HOST: belajar-rds-db.c5mycw64syxg.ap-southeast-1.rds.amazonaws.com
+      DB_HOST: localhost
       DB_USER: administrator
-      DB_PASSWORD: echoAdza3205
+      DB_PASSWORD: echoAdza32
       DB_PORT: 3306
       DB_NAME: admin_db
     ports:
@@ -68,9 +68,9 @@ services:
       context: ./member-services
       dockerfile: Dockerfile
     environment:
-      DB_HOST: belajar-rds-db.c5mycw64syxg.ap-southeast-1.rds.amazonaws.com
+      DB_HOST: localhost
       DB_USER: administrator
-      DB_PASSWORD: echoAdza3205
+      DB_PASSWORD: echoAdza32
       DB_PORT: 3306
       DB_NAME: member_db
       # Mailer Config
@@ -94,9 +94,9 @@ services:
       context: ./publishing-services
       dockerfile: Dockerfile
     environment:
-      DB_HOST: belajar-rds-db.c5mycw64syxg.ap-southeast-1.rds.amazonaws.com
+      DB_HOST: localhost
       DB_USER: administrator
-      DB_PASSWORD: echoAdza3205
+      DB_PASSWORD: echoAdza32
       DB_PORT: 3306
       DB_NAME: publishing_db
     ports:
