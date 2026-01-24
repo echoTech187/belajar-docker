@@ -1,12 +1,10 @@
 FROM node:22.15.0
 
-WORKDIR /
+WORKDIR /app
 
 COPY package*.json ./
-
+COPY ./ ./
 RUN npm install 
-
-COPY . .
 
 EXPOSE 3002
 

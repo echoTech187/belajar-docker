@@ -1,4 +1,4 @@
-const db = require('../../config/db');
+const db = require('../config/db');
 class AuthModel {
     async login(username) {
         const query = 'SELECT * FROM admins WHERE username = ? AND phone_number = ? and is_active = 1 LIMIT 1';
