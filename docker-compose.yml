@@ -15,7 +15,16 @@ services:
       - admin-services
       - member-services
       - publishing-services
-    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+    command: >-
+      /bin/sh -c '
+      if [ ! -f /etc/letsencrypt/live/YOUR-REAL-DOMAIN.duckdns.org/fullchain.pem ]; then
+        echo "Generating dummy certificate for YOUR-REAL-DOMAIN.duckdns.org...";
+        apk add --no-cache openssl;
+        mkdir -p /etc/letsencrypt/live/YOUR-REAL-DOMAIN.duckdns.org;
+        openssl req -x509 -nodes -newkey rsa:4096 -days 1 -keyout /etc/letsencrypt/live/YOUR-REAL-DOMAIN.duckdns.org/privkey.pem -out /etc/letsencrypt/live/YOUR-REAL-DOMAIN.duckdns.org/fullchain.pem -subj "/CN=localhost";
+      fi;
+      while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"
+      '
 
   certbot:
     image: certbot/certbot
